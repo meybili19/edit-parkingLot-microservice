@@ -16,4 +16,4 @@ COPY . .
 # Expose the port on which the microservice runs
 EXPOSE 6002
 # Command to run the microservice
-CMD ["npm", "start"]
+CMD ["node", "src/app.js"]
