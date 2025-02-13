@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 
 app.use('/parkinglot', parkingLotRoutes);
 
-const PORT = process.env.PORT || 6002;
+const PORT = process.env.PORT || 7005;
 app.listen(PORT, () => {
   console.log(`Parking lot update microservice running on port ${PORT}`);
 });
