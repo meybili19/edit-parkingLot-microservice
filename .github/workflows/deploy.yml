@@ -53,7 +53,7 @@ jobs:
               --env DB_PASSWORD=${{ secrets.DB_PASSWORD_M }} \
               --env DB_NAME=${{ secrets.DB_NAME_M }} \
               --env PARKING_SERVICE_URL=${{ secrets.PARKING_SERVICE_URL_M }} \
-              -p 6002:6002 \
+              -p 7005:7005 \
               ${{ secrets.DOCKER_USERNAME }}/edit_parkinglot_microservice_image:latest
 
             echo "✅ Despliegue completado con éxito."
