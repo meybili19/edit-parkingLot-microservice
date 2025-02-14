@@ -1,0 +1,59 @@
+name: Deploy to AWS
+
+on:
+  pull_request:
+    branches:
+      - main  
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v2
+
+      - name: Login en Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Construir y subir imagen a Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/edit_parkinglot_microservice_image:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/edit_parkinglot_microservice_image:latest
+
+      - name: Conectar a AWS EC2 y desplegar
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST_M }}
+          username: ${{ secrets.EC2_USER_M }}
+          key: ${{ secrets.EC2_SSH_KEY_M }}
+          script: |
+            echo "🚀 Iniciando despliegue en AWS EC2..."
+
+            # Detener y eliminar el contenedor si ya existe
+            if sudo docker ps -a --format '{{.Names}}' | grep -q edit_parkinglot_microservice_container; then
+              echo "🛑 Deteniendo y eliminando contenedor existente..."
+              sudo docker stop edit_parkinglot_microservice_container
+              sudo docker rm edit_parkinglot_microservice_container
+            fi
+
+            # Remover imágenes antiguas para evitar acumulación
+            echo "🧹 Limpiando imágenes antiguas..."
+            sudo docker image prune -af || true
+
+            # Descargar la última versión de la imagen desde Docker Hub
+            echo "📥 Descargando nueva imagen..."
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/edit_parkinglot_microservice_image:latest
+
+            # Ejecutar el nuevo contenedor con las variables de entorno
+            echo "🚀 Ejecutando nuevo contenedor..."
+            sudo docker run -d --name edit_parkinglot_microservice_container \
+              --env DB_HOST=${{ secrets.DB_HOST_M }} \
+              --env DB_USER=${{ secrets.DB_USER_M }} \
+              --env DB_PASSWORD=${{ secrets.DB_PASSWORD_M }} \
+              --env DB_NAME=${{ secrets.DB_NAME_M }} \
+              --env PARKING_SERVICE_URL=${{ secrets.PARKING_SERVICE_URL_M }} \
+              -p 7005:7005 \
+              ${{ secrets.DOCKER_USERNAME }}/edit_parkinglot_microservice_image:latest
+
+            echo "✅ Despliegue completado con éxito."
